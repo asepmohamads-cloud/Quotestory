@@ -14,7 +14,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const body = req.body || {};
     let promptText = '';
 
-    // Jika frontend mengirim payload mentah (category, mood, dll)
     if (body.category || body.prompt || body.customTopic) {
       const category = body.category || 'Umum';
       const mood = body.mood || 'Netral';
@@ -26,7 +25,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       promptText = JSON.stringify(body);
     }
 
-    // Format payload wajib Gemini API
     const geminiPayload = {
       contents: [
         {
@@ -37,7 +35,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ]
     };
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+    // Menggunakan model gemini-2.5-flash yang aktif
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(geminiPayload)
