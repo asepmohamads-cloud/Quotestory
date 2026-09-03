@@ -20,22 +20,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const format = body.format || 'Kutipan Singkat';
       const customTopic = body.customTopic ? ` Topik khusus: ${body.customTopic}.` : '';
 
-      promptText = `Buatkan 3 variasi kutipan estetis/sastra Indonesia dalam format JSON array berisi string. Kategori: ${category}, Suasana Hati: ${mood}, Format: ${format}.${customTopic}`;
+      promptText = `Buatkan 3 variasi kutipan estetis/sastra Indonesia. Kategori: ${category}, Suasana Hati: ${mood}, Format: ${format}.${customTopic}`;
     } else {
-      promptText = JSON.stringify(body);
+      promptText = typeof body === 'string' ? body : JSON.stringify(body);
     }
 
     const geminiPayload = {
       contents: [
         {
-          parts: [
-            { text: promptText }
-          ]
+          parts: [{ text: promptText }]
         }
       ]
     };
 
-    // Menggunakan model gemini-3.6-flash sesuai rekomendasi API
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -49,7 +46,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(response.status || 500).json({ error: String(errorMsg) });
     }
 
-    return res.status(200).json(data);
+    // Ambil teks mentah hasil olahan Gemini
+    const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+    // Kembalikan dalam beberapa opsi struktur agar kompatibel dengan frontend kamu
+    return res.status(200).json({
+      text: rawText,
+      result: rawText,
+      quotes: [rawText],
+      candidates: data.candidates
+    });
+
   } catch (err: any) {
     return res.status(500).json({ error: err.message || 'Server error' });
   }
