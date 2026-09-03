@@ -12,25 +12,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const body = req.body || {};
-    let promptText = '';
+    const category = body.category || 'Renungan Kehidupan';
+    const mood = body.mood || 'Tenang & Reflektif';
+    const format = body.format || 'Kutipan 2-4 Baris Puitis';
+    const customTopic = body.customTopic ? ` Topik khusus: ${body.customTopic}.` : '';
 
-    if (body.category || body.prompt || body.customTopic) {
-      const category = body.category || 'Umum';
-      const mood = body.mood || 'Netral';
-      const format = body.format || 'Kutipan Singkat';
-      const customTopic = body.customTopic ? ` Topik khusus: ${body.customTopic}.` : '';
+    const promptText = `Kamu adalah seorang sastrawan. Buatkan 3 variasi kutipan estetis/sastra Indonesia dalam bentuk VALID JSON ARRAY OF STRINGS tanpa teks lain. 
+Contoh format output wajib: ["Kutipan 1", "Kutipan 2", "Kutipan 3"]
 
-      promptText = `Buatkan 3 variasi kutipan estetis/sastra Indonesia. Kategori: ${category}, Suasana Hati: ${mood}, Format: ${format}.${customTopic}`;
-    } else {
-      promptText = typeof body === 'string' ? body : JSON.stringify(body);
-    }
+Kategori: ${category}
+Suasana Hati: ${mood}
+Format: ${format}${customTopic}`;
 
     const geminiPayload = {
-      contents: [
-        {
-          parts: [{ text: promptText }]
-        }
-      ]
+      contents: [{ parts: [{ text: promptText }] }]
     };
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`, {
@@ -46,16 +41,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(response.status || 500).json({ error: String(errorMsg) });
     }
 
-    // Ambil teks mentah hasil olahan Gemini
-    const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    let rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
 
-    // Kembalikan dalam beberapa opsi struktur agar kompatibel dengan frontend kamu
-    return res.status(200).json({
-      text: rawText,
-      result: rawText,
-      quotes: [rawText],
-      candidates: data.candidates
-    });
+    // Bersihkan Markdown Code Block (```json ... ```) jika Gemini menyertakannya
+    rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+
+    // Coba parse ke Array asli
+    try {
+      const parsedArray = JSON.parse(rawText);
+      return res.status(200).json(parsedArray);
+    } catch {
+      // Jika parsing gagal, kembalikan dalam array manual agar frontend tidak crash
+      const fallbackArray = rawText.split('\n').filter(line => line.trim() !== '');
+      return res.status(200).json(fallbackArray);
+    }
 
   } catch (err: any) {
     return res.status(500).json({ error: err.message || 'Server error' });
