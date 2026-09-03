@@ -30,7 +30,8 @@ Kembalikan WAJIB dalam format JSON Array murni yang berisi 3 objek dengan skema 
   }
 ]`;
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`, {
+    // Menggunakan model gemini-1.5-flash yang stabil
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
