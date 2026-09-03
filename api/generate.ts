@@ -17,10 +17,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const format = body.format || 'Kutipan 2-4 Baris Puitis';
     const customTopic = body.customTopic ? ` Topik khusus: ${body.customTopic}.` : '';
 
-    const promptText = `Buatkan 3 variasi kutipan estetis/sastra Indonesia dalam bentuk array string JSON murni tanpa markdown/penjelasan. Contoh: ["Kutipan 1", "Kutipan 2", "Kutipan 3"]. Kategori: ${category}, Suasana Hati: ${mood}, Format: ${format}${customTopic}`;
+    const promptText = `Kamu adalah sastrawan. Buatkan 3 variasi kutipan estetis/sastra Indonesia berdasarkan:
+Kategori: ${category}
+Suasana Hati: ${mood}
+Format: ${format}${customTopic}
 
+Kembalikan persis dalam format array JSON dari string, contoh: ["Kutipan satu", "Kutipan dua", "Kutipan tiga"]`;
+
+    // Menggunakan generationConfig response_mime_type application/json
     const geminiPayload = {
-      contents: [{ parts: [{ text: promptText }] }]
+      contents: [{ parts: [{ text: promptText }] }],
+      generationConfig: {
+        response_mime_type: "application/json"
+      }
     };
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${apiKey}`, {
@@ -36,22 +45,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(response.status || 500).json({ error: String(errorMsg) });
     }
 
-    let rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
+    const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
 
-    // Mengembalikan objek gabungan agar semua jenis cara pembacaan frontend berhasil
-    return res.status(200).json({
-      ...data,
-      text: rawText,
-      result: rawText,
-      candidates: [
-        {
-          content: {
-            parts: [{ text: rawText }]
-          }
-        }
-      ]
-    });
+    // Jika frontend menerima array JSON langsung
+    try {
+      const parsed = JSON.parse(rawText);
+      return res.status(200).json(parsed);
+    } catch {
+      return res.status(200).json({ text: rawText, candidates: data.candidates });
+    }
 
   } catch (err: any) {
     return res.status(500).json({ error: err.message || 'Server error' });
