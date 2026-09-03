@@ -7,10 +7,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const apiKey = process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    return res.status(500).json({ error: 'API Key Gemini belum dipasang di Environment Variables Vercel.' });
+    return res.status(500).json({ error: 'API Key Gemini belum terpasang di Environment Variables Vercel.' });
   }
 
   try {
+    // Memanggil API Gemini versi terbaru / 1.5 Flash
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -18,8 +19,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
 
     const data = await response.json();
+
+    if (!response.ok || data.error) {
+      const errorMsg = data.error?.message || data.error || 'Terjadi kesalahan pada Gemini API';
+      return res.status(response.status || 500).json({ error: String(errorMsg) });
+    }
+
     return res.status(200).json(data);
   } catch (err: any) {
-    return res.status(500).json({ error: err.message });
+    return res.status(500).json({ error: err.message || 'Server error' });
   }
 }
