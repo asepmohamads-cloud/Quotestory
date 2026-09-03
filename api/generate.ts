@@ -17,12 +17,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const format = body.format || 'Kutipan 2-4 Baris Puitis';
     const customTopic = body.customTopic ? ` Topik khusus: ${body.customTopic}.` : '';
 
-    const promptText = `Kamu adalah seorang sastrawan. Buatkan 3 variasi kutipan estetis/sastra Indonesia dalam bentuk VALID JSON ARRAY OF STRINGS tanpa teks lain. 
-Contoh format output wajib: ["Kutipan 1", "Kutipan 2", "Kutipan 3"]
-
-Kategori: ${category}
-Suasana Hati: ${mood}
-Format: ${format}${customTopic}`;
+    const promptText = `Buatkan 3 variasi kutipan estetis/sastra Indonesia dalam bentuk array string JSON murni tanpa markdown/penjelasan. Contoh: ["Kutipan 1", "Kutipan 2", "Kutipan 3"]. Kategori: ${category}, Suasana Hati: ${mood}, Format: ${format}${customTopic}`;
 
     const geminiPayload = {
       contents: [{ parts: [{ text: promptText }] }]
@@ -42,19 +37,21 @@ Format: ${format}${customTopic}`;
     }
 
     let rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-
-    // Bersihkan Markdown Code Block (```json ... ```) jika Gemini menyertakannya
     rawText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
 
-    // Coba parse ke Array asli
-    try {
-      const parsedArray = JSON.parse(rawText);
-      return res.status(200).json(parsedArray);
-    } catch {
-      // Jika parsing gagal, kembalikan dalam array manual agar frontend tidak crash
-      const fallbackArray = rawText.split('\n').filter(line => line.trim() !== '');
-      return res.status(200).json(fallbackArray);
-    }
+    // Mengembalikan objek gabungan agar semua jenis cara pembacaan frontend berhasil
+    return res.status(200).json({
+      ...data,
+      text: rawText,
+      result: rawText,
+      candidates: [
+        {
+          content: {
+            parts: [{ text: rawText }]
+          }
+        }
+      ]
+    });
 
   } catch (err: any) {
     return res.status(500).json({ error: err.message || 'Server error' });
