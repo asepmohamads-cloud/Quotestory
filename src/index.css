@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+@layer utilities {
+  .bg-bento-dots {
+    background-image: radial-gradient(rgba(99, 102, 241, 0.12) 1.5px, transparent 1.5px);
+    background-size: 24px 24px;
+  }
+  
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
