@@ -11,11 +11,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    // Memanggil API Gemini versi terbaru / 1.5 Flash
+    const body = req.body || {};
+    let promptText = '';
+
+    // Jika frontend mengirim payload mentah (category, mood, dll)
+    if (body.category || body.prompt || body.customTopic) {
+      const category = body.category || 'Umum';
+      const mood = body.mood || 'Netral';
+      const format = body.format || 'Kutipan Singkat';
+      const customTopic = body.customTopic ? ` Topik khusus: ${body.customTopic}.` : '';
+
+      promptText = `Buatkan 3 variasi kutipan estetis/sastra Indonesia dalam format JSON array berisi string. Kategori: ${category}, Suasana Hati: ${mood}, Format: ${format}.${customTopic}`;
+    } else {
+      promptText = JSON.stringify(body);
+    }
+
+    // Format payload wajib Gemini API
+    const geminiPayload = {
+      contents: [
+        {
+          parts: [
+            { text: promptText }
+          ]
+        }
+      ]
+    };
+
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(req.body)
+      body: JSON.stringify(geminiPayload)
     });
 
     const data = await response.json();
