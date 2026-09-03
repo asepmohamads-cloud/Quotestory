@@ -17,14 +17,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const format = body.format || 'Kutipan 2-4 Baris Puitis';
     const customTopic = body.customTopic ? ` Topik khusus: ${body.customTopic}.` : '';
 
-    const promptText = `Kamu adalah sastrawan. Buatkan 3 variasi kutipan estetis/sastra Indonesia berdasarkan:
+    const promptText = `Buatkan 3 variasi kutipan estetis/sastra Indonesia berdasarkan:
 Kategori: ${category}
 Suasana Hati: ${mood}
 Format: ${format}${customTopic}
 
-Kembalikan persis dalam format array JSON dari string, contoh: ["Kutipan satu", "Kutipan dua", "Kutipan tiga"]`;
+Wajib kembalikan HANYA array JSON murni berupa string tanpa markdown (tanpa \`\`\`json). Contoh: ["Kutipan 1", "Kutipan 2", "Kutipan 3"]`;
 
-    // Menggunakan generationConfig response_mime_type application/json
     const geminiPayload = {
       contents: [{ parts: [{ text: promptText }] }],
       generationConfig: {
@@ -45,15 +44,8 @@ Kembalikan persis dalam format array JSON dari string, contoh: ["Kutipan satu", 
       return res.status(response.status || 500).json({ error: String(errorMsg) });
     }
 
-    const rawText = data.candidates?.[0]?.content?.parts?.[0]?.text || '[]';
-
-    // Jika frontend menerima array JSON langsung
-    try {
-      const parsed = JSON.parse(rawText);
-      return res.status(200).json(parsed);
-    } catch {
-      return res.status(200).json({ text: rawText, candidates: data.candidates });
-    }
+    // Mengembalikan seluruh struktur data asli Gemini yang diharapkan frontend SDK
+    return res.status(200).json(data);
 
   } catch (err: any) {
     return res.status(500).json({ error: err.message || 'Server error' });
